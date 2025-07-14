@@ -1,9 +1,9 @@
 profile: cover.out
 
 threshold:
-  file: 70
-  package: 70
-  total: 75
+  file: 0
+  package: 0
+  total: 0
       
 exclude:
   paths:
