@@ -17,7 +17,9 @@ func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
 
 	if err != nil {
 		return err
+
 	}
+
 	// Use clientset to interact with the Kubernetes API
 	fmt.Printf("Suspending stream with ID: %s\n", id)
 	fmt.Printf("Using clientset: %v\n", clientset)
