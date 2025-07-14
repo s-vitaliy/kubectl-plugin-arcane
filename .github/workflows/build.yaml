@@ -1,5 +1,5 @@
 name: Run tests with coverage
-run-name: Validate ${{github.ref_name}} by @${{ github.actor }}
+run-name: Validate code with coverage
 
 on:
   push:
