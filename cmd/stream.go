@@ -1,4 +1,4 @@
-package client
+package main
 
 type StreamSuspendHandlerer interface {
 
@@ -18,5 +18,11 @@ type StreamRestartHandler interface {
 
 	/// Backfill restarts the stream with the given ID in backfill mode.
 	/// It returns an error if the operation fails.
-	Backfill(id string, wait bool) error
+	Restart(id string, wait bool) error
+}
+
+type StreamCommandHandler interface {
+	StreamSuspendHandlerer
+	StreamBackfillHandler
+	StreamRestartHandler
 }

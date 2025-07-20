@@ -1,29 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"log/slog"
+
+	"internal/client/api"
 
 	"github.com/alecthomas/kong"
 )
-
-type SuspendCmd struct {
-	Id string `arg:"" help:"The ID of the stream to suspend."`
-}
-
-type BackfillCmd struct {
-	Id string `arg:"" help:"The ID of the stream to backfill."`
-}
-
-type RestartCmd struct {
-	Id string `arg:"" help:"The ID of the stream to backfill."`
-}
-
-type StreamCmd struct {
-	Suspend  SuspendCmd  `cmd:"" help:"Suspends the given stream."`
-	Backfill BackfillCmd `cmd:"" help:"Restarts the given stream in the backfill mode."`
-	Restart  RestartCmd  `cmd:"" help:"Restarts the given stream in the streaming mode."`
-}
 
 var CLI struct {
 	Stream StreamCmd `cmd:"" help:"Manage Arcane streams."`
@@ -32,9 +17,20 @@ var CLI struct {
 const AppDescription = "A command line tool for managing the Arcane streams."
 
 func main() {
+	handler := slog.NewTextHandler(os.Stdout, nil)
+	logger := slog.New(handler)
+	apiClient := api.NewAnnotationStreamCommandHandler(&api.HandlerContext{
+		Logger: logger,
+	})
+
 	executableName := getExecutableName()
 	ctx := kong.Parse(&CLI, kong.Name(executableName), kong.Description(AppDescription))
-	println("Parsed context:", ctx)
+	err := ctx.Run(&Context{logger: logger, apiClient: apiClient})
+	if err != nil {
+		logger.Error("Command execution failed", slog.String("command", ctx.Command()), slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	logger.Info("Command executed successfully", slog.String("command", ctx.Command()))
 }
 
 func getExecutableName() string {
@@ -43,10 +39,6 @@ func getExecutableName() string {
 }
 
 type Context struct {
-	// Add any context-specific fields here if needed
-}
-
-func (r *SuspendCmd) Run(ctx *Context) error {
-	fmt.Println("rm", r.Id)
-	return nil
+	logger    *slog.Logger
+	apiClient StreamCommandHandler
 }
