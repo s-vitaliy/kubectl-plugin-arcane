@@ -5,7 +5,8 @@ import (
 
 	"log/slog"
 
-	"s-vitaliy/kubectl-plugin-arcane/internal/client/api"
+	"s-vitaliy/kubectl-plugin-arcane/internal/api"
+	"s-vitaliy/kubectl-plugin-arcane/internal/app"
 	"s-vitaliy/kubectl-plugin-arcane/internal/commands"
 
 	"github.com/alecthomas/kong"
@@ -21,17 +22,15 @@ const AppDescription = "A command line tool for managing the Arcane streams."
 func main() {
 	handler := slog.NewTextHandler(os.Stdout, nil)
 	logger := slog.New(handler)
-	apiClient := api.NewAnnotationStreamCommandHandler(&api.HandlerContext{
-		Logger: logger,
-	})
-
 	container := dig.New()
-	err := container.Provide(provideStreamCommandHandler)
+
+	err := container.Provide(api.ProvideStreamCommandHandler)
 	if err != nil {
 		logger.Error("Failed to provide stream command handler", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	err = container.Provide(provideConfigReader)
+
+	err = container.Provide(app.ProvideConfigReader)
 	if err != nil {
 		logger.Error("Failed to provide config reader", slog.String("error", err.Error()))
 		os.Exit(1)

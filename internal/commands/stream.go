@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"log/slog"
+	"fmt"
 	"s-vitaliy/kubectl-plugin-arcane/internal/handlers"
 )
 
@@ -28,13 +28,11 @@ type StreamCmd struct {
 }
 
 func (r *SuspendCmd) Run(ctx *Context) error {
-	ctx.Logger.Info("Suspending stream", slog.String("id", r.Id))
 	err := ctx.Container.Invoke(func(h handlers.StreamCommandHandler) error {
-		if h == nil {
-			ctx.Logger.Error("Stream command handler is not provided")
-			return nil
+		if h != nil {
+			return h.Suspend(r.Id)
 		}
-		return h.Suspend(r.Id)
+		return fmt.Errorf("no handler provided for suspending stream")
 	})
 	return err
 }

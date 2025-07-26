@@ -9,7 +9,3 @@ import (
 func provideStreamCommandHandler(configReader app.ConfigReader) (handlers.StreamCommandHandler, error) {
 	return api.NewAnnotationStreamCommandHandlerV1(configReader), nil
 }
-
-func provideConfigReader() (app.ConfigReader, error) {
-	return &app.FileConfigReader{ConfigOverride: ""}, nil
-}
