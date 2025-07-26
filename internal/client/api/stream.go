@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+
+	"s-vitaliy/kubectl-plugin-arcane/internal/app"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,18 +32,24 @@ var NAMESPACE = "arcane"
 
 type AnnotationStreamCommandHandler struct {
 	context      *HandlerContext
-	configReader ConfigReader
+	configReader app.ConfigReader
 }
 
-func NewAnnotationStreamCommandHandler(context *HandlerContext) *AnnotationStreamCommandHandler {
-	configReader := FileConfigReader{configOverride: ""}
+func NewAnnotationStreamCommandHandlerV1(configReader app.ConfigReader) *AnnotationStreamCommandHandler {
+	return &AnnotationStreamCommandHandler{context: nil, configReader: configReader}
+}
+
+func NewAnnotationStreamCommandHandler(context *HandlerContext) *AnnotationStreamCommandHandler { // TODO: remove this duplicate
+	configReader := app.FileConfigReader{ConfigOverride: ""}
 	return &AnnotationStreamCommandHandler{context: context, configReader: &configReader}
 }
 
 // Suspend suspends the stream with the given ID.
 // It returns an error if the operation fails.
 func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
-	h.context.Logger.Info("Suspending stream", "id", id)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	logger.Info("Reading the client configuration")
 	config, err := h.configReader.ReadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
@@ -54,7 +63,7 @@ func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
 	if err != nil {
 		return fmt.Errorf("failed to discover job %s: %w", id, err)
 	}
-	h.context.Logger.Debug("Discovered client API settings", "settings", clientApiSettings)
+	logger.Debug("Discovered client API settings", "settings", clientApiSettings)
 
 	patchBytes, err := json.Marshal(suspendAnnotation)
 	if err != nil {
@@ -73,7 +82,7 @@ func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
 		v1.PatchOptions{})
 
 	if err != nil {
-		h.context.Logger.Error("Failed to suspend stream", "id", id, "error", err)
+		logger.Error("Failed to suspend stream", "id", id, "error", err)
 		return fmt.Errorf("failed to suspend stream %s: %w", id, err)
 	}
 
@@ -91,15 +100,17 @@ func (h *AnnotationStreamCommandHandler) Restart(id string, wait bool) error {
 }
 
 func (h *AnnotationStreamCommandHandler) buildDynamicClient(config *rest.Config) (dynamic.Interface, error) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	clientset, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
-	h.context.Logger.Debug("Created dynamic client", "clientset", clientset)
+	logger.Debug("Created dynamic client", "clientset", clientset)
 	return clientset, nil
 }
 
 func (h *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterface dynamic.Interface, name string, namespace string) (*ClientApiSettings, error) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	resourceRef := schema.GroupVersionResource{
 		Group:    "batch",
 		Version:  "v1",
@@ -108,19 +119,19 @@ func (h *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterface dyna
 	dynamicClient := dynamicInterface.Resource(resourceRef).Namespace(namespace)
 	jobValue, err := dynamicClient.Get(context.TODO(), name, v1.GetOptions{})
 	if err != nil {
-		h.context.Logger.Error("Failed to get job", "namespace", "name", namespace, name, "error", err)
+		logger.Error("Failed to get job", "namespace", "name", namespace, name, "error", err)
 		return nil, fmt.Errorf("failed to get job %s: %w", name, err)
 	}
 	metadata, ok := jobValue.Object["metadata"].(map[string]interface{})
 	if !ok {
-		h.context.Logger.Error("Failed to get metadata from job", "namespace", "name", namespace, name)
+		logger.Error("Failed to get metadata from job", "namespace", "name", namespace, name)
 		return nil, fmt.Errorf("failed to get metadata from job %s", name)
 	}
 	annotations, ok := metadata["annotations"].(map[string]interface{})
 	if !ok {
-		h.context.Logger.Error("Failed to get annotations from job metadata", "namespace", "name", namespace, name)
+		logger.Error("Failed to get annotations from job metadata", "namespace", "name", namespace, name)
 		return nil, fmt.Errorf("failed to get annotations from job %s metadata", name)
 	}
-	h.context.Logger.Debug("Annotations from job", "namespace", "name", namespace, name, "annotations", annotations)
+	logger.Debug("Annotations from job", "namespace", "name", namespace, name, "annotations", annotations)
 	return ReadAnnotations(annotations)
 }

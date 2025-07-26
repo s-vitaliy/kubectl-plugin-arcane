@@ -9,6 +9,7 @@ import (
 	"s-vitaliy/kubectl-plugin-arcane/internal/commands"
 
 	"github.com/alecthomas/kong"
+	"go.uber.org/dig"
 )
 
 var CLI struct {
@@ -24,9 +25,22 @@ func main() {
 		Logger: logger,
 	})
 
+	container := dig.New()
+	err := container.Provide(provideStreamCommandHandler)
+	if err != nil {
+		logger.Error("Failed to provide stream command handler", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	err = container.Provide(provideConfigReader)
+	if err != nil {
+		logger.Error("Failed to provide config reader", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	executableName := getExecutableName()
 	ctx := kong.Parse(&CLI, kong.Name(executableName), kong.Description(AppDescription))
-	err := ctx.Run(&commands.Context{Logger: logger, ApiClient: apiClient})
+	err = ctx.Run(&commands.Context{Logger: logger, ApiClient: apiClient, Container: container})
+
 	if err != nil {
 		logger.Error("Command execution failed", slog.String("command", ctx.Command()), slog.String("error", err.Error()))
 		os.Exit(1)
