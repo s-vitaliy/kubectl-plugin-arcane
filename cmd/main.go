@@ -5,13 +5,14 @@ import (
 
 	"log/slog"
 
-	"internal/client/api"
+	"s-vitaliy/kubectl-plugin-arcane/internal/client/api"
+	"s-vitaliy/kubectl-plugin-arcane/internal/commands"
 
 	"github.com/alecthomas/kong"
 )
 
 var CLI struct {
-	Stream StreamCmd `cmd:"" help:"Manage Arcane streams."`
+	Stream commands.StreamCmd `cmd:"" help:"Manage Arcane streams."`
 }
 
 const AppDescription = "A command line tool for managing the Arcane streams."
@@ -25,7 +26,7 @@ func main() {
 
 	executableName := getExecutableName()
 	ctx := kong.Parse(&CLI, kong.Name(executableName), kong.Description(AppDescription))
-	err := ctx.Run(&Context{logger: logger, apiClient: apiClient})
+	err := ctx.Run(&commands.Context{Logger: logger, ApiClient: apiClient})
 	if err != nil {
 		logger.Error("Command execution failed", slog.String("command", ctx.Command()), slog.String("error", err.Error()))
 		os.Exit(1)
@@ -36,9 +37,4 @@ func main() {
 func getExecutableName() string {
 	// Not checking for errors here since argv[0] should always be available
 	return os.Args[0]
-}
-
-type Context struct {
-	logger    *slog.Logger
-	apiClient StreamCommandHandler
 }

@@ -2,11 +2,13 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -14,6 +16,16 @@ import (
 type HandlerContext struct {
 	Logger *slog.Logger
 }
+
+var suspendAnnotation = map[string]interface{}{
+	"metadata": map[string]interface{}{
+		"annotations": map[string]string{
+			"arcane/state": "suspended",
+		},
+	},
+}
+
+var NAMESPACE = "arcane"
 
 type AnnotationStreamCommandHandler struct {
 	context      *HandlerContext
@@ -38,10 +50,33 @@ func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
 		return fmt.Errorf("failed to build dynamic client: %w", err)
 	}
 
-	_, err = h.discoveryFromJobs(client, id, "arcane")
+	clientApiSettings, err := h.discoveryFromJobs(client, id, NAMESPACE)
 	if err != nil {
 		return fmt.Errorf("failed to discover job %s: %w", id, err)
 	}
+	h.context.Logger.Debug("Discovered client API settings", "settings", clientApiSettings)
+
+	patchBytes, err := json.Marshal(suspendAnnotation)
+	if err != nil {
+		return fmt.Errorf("failed to marshal suspend annotation: %w", err)
+	}
+	dynamicClient := client.Resource(schema.GroupVersionResource{
+		Group:    clientApiSettings.apiGroup,
+		Version:  clientApiSettings.apiVersion,
+		Resource: clientApiSettings.apiPlural,
+	}).Namespace(NAMESPACE)
+
+	_, err = dynamicClient.Patch(context.TODO(),
+		id,
+		types.MergePatchType,
+		patchBytes,
+		v1.PatchOptions{})
+
+	if err != nil {
+		h.context.Logger.Error("Failed to suspend stream", "id", id, "error", err)
+		return fmt.Errorf("failed to suspend stream %s: %w", id, err)
+	}
+
 	return nil
 }
 
