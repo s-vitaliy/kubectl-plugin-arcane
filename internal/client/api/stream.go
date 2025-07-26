@@ -9,6 +9,8 @@ import (
 
 	"s-vitaliy/kubectl-plugin-arcane/internal/app"
 
+	"s-vitaliy/kubectl-plugin-arcane/internal/handlers"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +35,12 @@ var NAMESPACE = "arcane"
 type AnnotationStreamCommandHandler struct {
 	context      *HandlerContext
 	configReader app.ConfigReader
+}
+
+// Provideres a new AnnotationStreamCommandHandler with the given configReader.
+// This function is used to provide the handler in the dependency injection container.
+func ProvideStreamCommandHandler(configReader app.ConfigReader) (handlers.StreamCommandHandler, error) {
+	return NewAnnotationStreamCommandHandlerV1(configReader), nil
 }
 
 func NewAnnotationStreamCommandHandlerV1(configReader app.ConfigReader) *AnnotationStreamCommandHandler {
