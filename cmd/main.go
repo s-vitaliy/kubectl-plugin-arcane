@@ -29,8 +29,6 @@ func main() {
 	container.Provide(provideStreamCommandHandler)
 	container.Provide(provideConfigReader)
 
-	logger.Info("Starting dependency injection container: %s", container)
-
 	executableName := getExecutableName()
 	ctx := kong.Parse(&CLI, kong.Name(executableName), kong.Description(AppDescription))
 	err := ctx.Run(&commands.Context{Logger: logger, ApiClient: apiClient, Container: container})
