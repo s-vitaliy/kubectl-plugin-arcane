@@ -72,6 +72,11 @@ func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
 		patchBytes,
 		v1.PatchOptions{})
 
+	if err != nil {
+		h.context.Logger.Error("Failed to suspend stream", "id", id, "error", err)
+		return fmt.Errorf("failed to suspend stream %s: %w", id, err)
+	}
+
 	return nil
 }
 
