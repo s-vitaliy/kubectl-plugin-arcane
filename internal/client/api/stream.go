@@ -9,7 +9,7 @@ import (
 
 	"s-vitaliy/kubectl-plugin-arcane/internal/app"
 
-	"s-vitaliy/kubectl-plugin-arcane/internal/handlers"
+	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,10 +17,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
-
-type HandlerContext struct {
-	Logger *slog.Logger
-}
 
 var suspendAnnotation = map[string]interface{}{
 	"metadata": map[string]interface{}{
@@ -33,45 +29,32 @@ var suspendAnnotation = map[string]interface{}{
 var NAMESPACE = "arcane"
 
 type AnnotationStreamCommandHandler struct {
-	context      *HandlerContext
+	logger       *slog.Logger
 	configReader app.ConfigReader
 }
 
 // Provideres a new AnnotationStreamCommandHandler with the given configReader.
 // This function is used to provide the handler in the dependency injection container.
-func ProvideStreamCommandHandler(configReader app.ConfigReader) (handlers.StreamCommandHandler, error) {
-	return NewAnnotationStreamCommandHandlerV1(configReader), nil
+func ProvideStreamCommandHandler(configReader app.ConfigReader, logger *slog.Logger) (abstractions.StreamCommandHandler, error) {
+	return &AnnotationStreamCommandHandler{configReader: configReader, logger: logger}, nil
 }
 
-func NewAnnotationStreamCommandHandlerV1(configReader app.ConfigReader) *AnnotationStreamCommandHandler {
-	return &AnnotationStreamCommandHandler{context: nil, configReader: configReader}
-}
-
-func NewAnnotationStreamCommandHandler(context *HandlerContext) *AnnotationStreamCommandHandler { // TODO: remove this duplicate
-	configReader := app.FileConfigReader{ConfigOverride: ""}
-	return &AnnotationStreamCommandHandler{context: context, configReader: &configReader}
-}
-
-// Suspend suspends the stream with the given ID.
-// It returns an error if the operation fails.
-func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-
-	logger.Info("Reading the client configuration")
-	config, err := h.configReader.ReadConfig()
+func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
+	handler.logger.Info("Reading the client configuration")
+	config, err := handler.configReader.ReadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
 	}
-	client, err := h.buildDynamicClient(config)
+	client, err := handler.buildDynamicClient(config)
 	if err != nil {
 		return fmt.Errorf("failed to build dynamic client: %w", err)
 	}
 
-	clientApiSettings, err := h.discoveryFromJobs(client, id, NAMESPACE)
+	clientApiSettings, err := handler.discoveryFromJobs(client, id, NAMESPACE)
 	if err != nil {
 		return fmt.Errorf("failed to discover job %s: %w", id, err)
 	}
-	logger.Debug("Discovered client API settings", "settings", clientApiSettings)
+	handler.logger.Debug("Discovered client API settings", "settings", clientApiSettings)
 
 	patchBytes, err := json.Marshal(suspendAnnotation)
 	if err != nil {
@@ -90,24 +73,67 @@ func (h *AnnotationStreamCommandHandler) Suspend(id string) error {
 		v1.PatchOptions{})
 
 	if err != nil {
-		logger.Error("Failed to suspend stream", "id", id, "error", err)
+		handler.logger.Error("Failed to suspend stream", "id", id, "error", err)
 		return fmt.Errorf("failed to suspend stream %s: %w", id, err)
 	}
 
 	return nil
 }
 
-func (h *AnnotationStreamCommandHandler) Backfill(id string, watch bool) error {
+func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass string) error {
+	handler.logger.Info("Reading the client configuration")
+	config, err := handler.configReader.ReadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to read config: %w", err)
+	}
+	client, err := handler.buildDynamicClient(config)
+	if err != nil {
+		return fmt.Errorf("failed to build dynamic client: %w", err)
+	}
+
+	clientApiSettings, err := handler.discoveryFromStreamClass(client, id, NAMESPACE, streamClass)
+	if err != nil {
+		return fmt.Errorf("failed to discover job %s: %w", id, err)
+	}
+	handler.logger.Debug("Discovered client API settings", "settings", clientApiSettings)
+
+	dynamicClient := client.Resource(schema.GroupVersionResource{
+		Group:    clientApiSettings.apiGroup,
+		Version:  clientApiSettings.apiVersion,
+		Resource: clientApiSettings.apiPlural,
+	}).Namespace(NAMESPACE)
+
+	streamDefinition, err := dynamicClient.Get(context.TODO(), id, v1.GetOptions{})
+
+	if err != nil {
+		return fmt.Errorf("failed to get stream definition %s: %w", id, err)
+	}
+
+	if streamDefinition.Object["status"] == nil {
+		return fmt.Errorf("status field is missing in stream definition %s", id)
+	}
+
+	_, ok := streamDefinition.Object["status"].(map[string]interface{})
+
+	if !ok {
+		return fmt.Errorf("status field is not a map in stream definition %s", id)
+	}
+
+	/// TODO
+	return nil
+}
+
+func (handler *AnnotationStreamCommandHandler) Backfill(id string, watch bool) error {
 	// TODO: implement resume logic
 	return nil
 }
 
-func (h *AnnotationStreamCommandHandler) Restart(id string, wait bool) error {
+func (handler *AnnotationStreamCommandHandler) Restart(id string, wait bool) error {
 	// TODO: implement delete logic
 	return nil
 }
 
-func (h *AnnotationStreamCommandHandler) buildDynamicClient(config *rest.Config) (dynamic.Interface, error) {
+func (handler *AnnotationStreamCommandHandler) buildDynamicClient(config *rest.Config) (dynamic.Interface, error) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	clientset, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -117,7 +143,7 @@ func (h *AnnotationStreamCommandHandler) buildDynamicClient(config *rest.Config)
 	return clientset, nil
 }
 
-func (h *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterface dynamic.Interface, name string, namespace string) (*ClientApiSettings, error) {
+func (handler *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterface dynamic.Interface, name string, namespace string) (*ClientApiSettings, error) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	resourceRef := schema.GroupVersionResource{
 		Group:    "batch",
@@ -142,4 +168,8 @@ func (h *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterface dyna
 	}
 	logger.Debug("Annotations from job", "namespace", "name", namespace, name, "annotations", annotations)
 	return ReadAnnotations(annotations)
+}
+
+func (handler *AnnotationStreamCommandHandler) discoveryFromStreamClass(dynamicInterface dynamic.Interface, name string, namespace string, streamClass string) (*ClientApiSettings, error) {
+	// TODO: implement discovery from stream class
 }
