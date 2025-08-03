@@ -81,7 +81,7 @@ func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
 }
 
 func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass string) error {
-	handler.logger.Info("Reading the client configuration")
+	handler.logger.Info("Resuming stream", "id", id, "streamClass", streamClass)
 	config, err := handler.configReader.ReadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
@@ -93,7 +93,7 @@ func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass str
 
 	clientApiSettings, err := handler.discoveryFromStreamClass(client, id, NAMESPACE, streamClass)
 	if err != nil {
-		return fmt.Errorf("failed to discover job %s: %w", id, err)
+		return fmt.Errorf("failed to discover stream class%s: %w", id, err)
 	}
 	handler.logger.Debug("Discovered client API settings", "settings", clientApiSettings)
 
@@ -171,5 +171,35 @@ func (handler *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterfac
 }
 
 func (handler *AnnotationStreamCommandHandler) discoveryFromStreamClass(dynamicInterface dynamic.Interface, name string, namespace string, streamClass string) (*ClientApiSettings, error) {
-	// TODO: implement discovery from stream class
+	resourceRef := schema.GroupVersionResource{
+		Group:    "streaming.sneaksanddata.com",
+		Version:  "v1beta1",
+		Resource: "stream-classes",
+	}
+	dynamicClient := dynamicInterface.Resource(resourceRef).Namespace(namespace)
+	streamClassValue, err := dynamicClient.Get(context.TODO(), streamClass, v1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stream class %s: %w", streamClass, err)
+	}
+	spec, ok := streamClassValue.Object["spec"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to get spec from stream class %s", name)
+	}
+	apiGroup, ok := spec["apiGroupRef"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get apiGroup from stream class %s", name)
+	}
+	apiVersion, ok := spec["apiVersion"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get apiVersion from stream class %s", name)
+	}
+	apiPlural, ok := spec["pluralName"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get apiPlural from stream class %s", name)
+	}
+	return &ClientApiSettings{
+		apiGroup:   apiGroup,
+		apiVersion: apiVersion,
+		apiPlural:  apiPlural,
+	}, nil
 }

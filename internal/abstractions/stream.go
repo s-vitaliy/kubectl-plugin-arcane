@@ -11,7 +11,7 @@ type StreamResumeHandlerer interface {
 
 	/// Resumes the stream with the given ID.
 	/// It returns an error if the operation fails.
-	Resume(id string) error
+	Resume(id string, streamClass string) error
 }
 
 type StreamBackfillHandler interface {
