@@ -7,6 +7,7 @@ import (
 
 	"s-vitaliy/kubectl-plugin-arcane/internal/app"
 	"s-vitaliy/kubectl-plugin-arcane/internal/client/api"
+	"s-vitaliy/kubectl-plugin-arcane/internal/client/api/common"
 	"s-vitaliy/kubectl-plugin-arcane/internal/commands"
 
 	"github.com/alecthomas/kong"
@@ -42,6 +43,12 @@ func main() {
 	err = container.Provide(app.ProvideConfigReader)
 	if err != nil {
 		logger.Error("Failed to provide config reader", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	err = container.Provide(common.ProvideStreamClassDiscoveryService)
+	if err != nil {
+		logger.Error("Failed to provide stream class discovery service", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
