@@ -12,11 +12,15 @@ type ConfigReader interface {
 	ReadConfig() (*rest.Config, error)
 }
 
-type FileConfigReader struct {
+func ProvideConfigReader() (ConfigReader, error) {
+	return &fileConfigReader{ConfigOverride: ""}, nil
+}
+
+type fileConfigReader struct {
 	ConfigOverride string
 }
 
-func (r *FileConfigReader) ReadConfig() (*rest.Config, error) {
+func (r *fileConfigReader) ReadConfig() (*rest.Config, error) {
 	if r.ConfigOverride != "" {
 		return r.readFromFile(r.ConfigOverride)
 	}
@@ -29,7 +33,7 @@ func (r *FileConfigReader) ReadConfig() (*rest.Config, error) {
 
 }
 
-func (r *FileConfigReader) readFromFile(path string) (*rest.Config, error) {
+func (r *fileConfigReader) readFromFile(path string) (*rest.Config, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {

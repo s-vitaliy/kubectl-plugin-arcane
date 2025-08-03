@@ -1,10 +1,17 @@
-package handlers
+package abstractions
 
 type StreamSuspendHandlerer interface {
 
-	/// Suspend suspends the stream with the given ID.
+	/// Suspends the stream with the given ID.
 	/// It returns an error if the operation fails.
 	Suspend(id string) error
+}
+
+type StreamResumeHandlerer interface {
+
+	/// Resumes the stream with the given ID.
+	/// It returns an error if the operation fails.
+	Resume(id string, streamClass string) error
 }
 
 type StreamBackfillHandler interface {
@@ -23,6 +30,7 @@ type StreamRestartHandler interface {
 
 type StreamCommandHandler interface {
 	StreamSuspendHandlerer
+	StreamResumeHandlerer
 	StreamBackfillHandler
 	StreamRestartHandler
 }

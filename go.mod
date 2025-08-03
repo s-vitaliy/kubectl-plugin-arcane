@@ -21,7 +21,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.uber.org/dig v1.19.0 // indirect
+	go.uber.org/dig v1.19.0 
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
