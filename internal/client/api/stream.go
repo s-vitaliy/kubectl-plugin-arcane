@@ -12,7 +12,6 @@ import (
 	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -37,14 +36,20 @@ var resumeAnnotation = map[string]interface{}{
 var NAMESPACE = "arcane"
 
 type AnnotationStreamCommandHandler struct {
-	logger       *slog.Logger
-	configReader app.ConfigReader
+	logger                *slog.Logger
+	configReader          app.ConfigReader
+	apiSettingsDiscoverer abstractions.ApiSettingsDiscoverer
 }
 
 // Provideres a new AnnotationStreamCommandHandler with the given configReader.
 // This function is used to provide the handler in the dependency injection container.
-func ProvideStreamCommandHandler(configReader app.ConfigReader, logger *slog.Logger) (abstractions.StreamCommandHandler, error) {
-	return &AnnotationStreamCommandHandler{configReader: configReader, logger: logger}, nil
+func ProvideStreamCommandHandler(configReader app.ConfigReader, logger *slog.Logger, apiSettingsDiscoverer abstractions.ApiSettingsDiscoverer) (abstractions.StreamCommandHandler, error) {
+	handler := &AnnotationStreamCommandHandler{
+		configReader:          configReader,
+		logger:                logger,
+		apiSettingsDiscoverer: apiSettingsDiscoverer,
+	}
+	return handler, nil
 }
 
 func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
@@ -58,7 +63,7 @@ func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
 		return fmt.Errorf("failed to build dynamic client: %w", err)
 	}
 
-	clientApiSettings, err := handler.discoveryFromJobs(client, id, NAMESPACE)
+	clientApiSettings, err := handler.apiSettingsDiscoverer.DiscoveryFromJobs(context.TODO(), client, id, NAMESPACE)
 	if err != nil {
 		return fmt.Errorf("failed to discover job %s: %w", id, err)
 	}
@@ -68,11 +73,7 @@ func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal suspend annotation: %w", err)
 	}
-	dynamicClient := client.Resource(schema.GroupVersionResource{
-		Group:    clientApiSettings.apiGroup,
-		Version:  clientApiSettings.apiVersion,
-		Resource: clientApiSettings.apiPlural,
-	}).Namespace(NAMESPACE)
+	dynamicClient := client.Resource(clientApiSettings.ToGroupVersionResource()).Namespace(NAMESPACE)
 
 	_, err = dynamicClient.Patch(context.TODO(),
 		id,
@@ -99,33 +100,13 @@ func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass str
 		return fmt.Errorf("failed to build dynamic client: %w", err)
 	}
 
-	clientApiSettings, err := handler.discoveryFromStreamClass(client, id, NAMESPACE, streamClass)
+	clientApiSettings, err := handler.apiSettingsDiscoverer.DiscoveryFromStreamClass(context.TODO(), client, streamClass, NAMESPACE)
 	if err != nil {
 		return fmt.Errorf("failed to discover stream class%s: %w", id, err)
 	}
 	handler.logger.Debug("Discovered client API settings", "settings", clientApiSettings)
 
-	dynamicClient := client.Resource(schema.GroupVersionResource{
-		Group:    clientApiSettings.apiGroup,
-		Version:  clientApiSettings.apiVersion,
-		Resource: clientApiSettings.apiPlural,
-	}).Namespace(NAMESPACE)
-
-	streamDefinition, err := dynamicClient.Get(context.TODO(), id, v1.GetOptions{})
-
-	if err != nil {
-		return fmt.Errorf("failed to get stream definition %s: %w", id, err)
-	}
-
-	if streamDefinition.Object["status"] == nil {
-		return fmt.Errorf("status field is missing in stream definition %s", id)
-	}
-
-	_, ok := streamDefinition.Object["status"].(map[string]interface{})
-
-	if !ok {
-		return fmt.Errorf("status field is not a map in stream definition %s", id)
-	}
+	dynamicClient := client.Resource(clientApiSettings.ToGroupVersionResource()).Namespace(NAMESPACE)
 
 	patchBytes, err := json.Marshal(resumeAnnotation)
 	if err != nil {
@@ -162,66 +143,4 @@ func (handler *AnnotationStreamCommandHandler) buildDynamicClient(config *rest.C
 	}
 	logger.Debug("Created dynamic client", "clientset", clientset)
 	return clientset, nil
-}
-
-func (handler *AnnotationStreamCommandHandler) discoveryFromJobs(dynamicInterface dynamic.Interface, name string, namespace string) (*ClientApiSettings, error) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	resourceRef := schema.GroupVersionResource{
-		Group:    "batch",
-		Version:  "v1",
-		Resource: "jobs",
-	}
-	dynamicClient := dynamicInterface.Resource(resourceRef).Namespace(namespace)
-	jobValue, err := dynamicClient.Get(context.TODO(), name, v1.GetOptions{})
-	if err != nil {
-		logger.Error("Failed to get job", "namespace", "name", namespace, name, "error", err)
-		return nil, fmt.Errorf("failed to get job %s: %w", name, err)
-	}
-	metadata, ok := jobValue.Object["metadata"].(map[string]interface{})
-	if !ok {
-		logger.Error("Failed to get metadata from job", "namespace", "name", namespace, name)
-		return nil, fmt.Errorf("failed to get metadata from job %s", name)
-	}
-	annotations, ok := metadata["annotations"].(map[string]interface{})
-	if !ok {
-		logger.Error("Failed to get annotations from job metadata", "namespace", "name", namespace, name)
-		return nil, fmt.Errorf("failed to get annotations from job %s metadata", name)
-	}
-	logger.Debug("Annotations from job", "namespace", "name", namespace, name, "annotations", annotations)
-	return ReadAnnotations(annotations)
-}
-
-func (handler *AnnotationStreamCommandHandler) discoveryFromStreamClass(dynamicInterface dynamic.Interface, name string, namespace string, streamClass string) (*ClientApiSettings, error) {
-	resourceRef := schema.GroupVersionResource{
-		Group:    "streaming.sneaksanddata.com",
-		Version:  "v1beta1",
-		Resource: "stream-classes",
-	}
-	dynamicClient := dynamicInterface.Resource(resourceRef).Namespace(namespace)
-	streamClassValue, err := dynamicClient.Get(context.TODO(), streamClass, v1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get stream class %s: %w", streamClass, err)
-	}
-	spec, ok := streamClassValue.Object["spec"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to get spec from stream class %s", name)
-	}
-	apiGroup, ok := spec["apiGroupRef"].(string)
-	if !ok {
-		return nil, fmt.Errorf("failed to get apiGroup from stream class %s", name)
-	}
-	apiVersion, ok := spec["apiVersion"].(string)
-	if !ok {
-		return nil, fmt.Errorf("failed to get apiVersion from stream class %s", name)
-	}
-	apiPlural, ok := spec["pluralName"].(string)
-	if !ok {
-		return nil, fmt.Errorf("failed to get apiPlural from stream class %s", name)
-	}
-	settings := &ClientApiSettings{
-		apiGroup:   apiGroup,
-		apiVersion: apiVersion,
-		apiPlural:  apiPlural,
-	}
-	return settings, nil
 }
