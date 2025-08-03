@@ -52,6 +52,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = container.Provide(common.ProvideDynamicClient)
+	if err != nil {
+		logger.Error("Failed to provide dynamic client", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	executableName := getExecutableName()
 	command := kong.Parse(&CLI, kong.Name(executableName), kong.Description(AppDescription))
 	err = command.Run(container)
