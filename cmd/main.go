@@ -6,8 +6,8 @@ import (
 	"log/slog"
 
 	"s-vitaliy/kubectl-plugin-arcane/internal/app"
-	"s-vitaliy/kubectl-plugin-arcane/internal/client/api"
 	"s-vitaliy/kubectl-plugin-arcane/internal/client/api/common"
+	v0 "s-vitaliy/kubectl-plugin-arcane/internal/client/api/v0"
 	"s-vitaliy/kubectl-plugin-arcane/internal/commands"
 
 	"github.com/alecthomas/kong"
@@ -34,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = container.Provide(api.ProvideStreamCommandHandler)
+	err = container.Provide(app.ProvideStreamCommandHandler)
 	if err != nil {
 		logger.Error("Failed to provide stream command handler", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -55,6 +55,12 @@ func main() {
 	err = container.Provide(common.ProvideDynamicClient)
 	if err != nil {
 		logger.Error("Failed to provide dynamic client", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	err = container.Provide(v0.ProvideStreamClassOperationService)
+	if err != nil {
+		logger.Error("Failed to provide stream class operation service", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
