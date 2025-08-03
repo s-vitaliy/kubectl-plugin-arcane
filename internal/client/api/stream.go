@@ -26,6 +26,14 @@ var suspendAnnotation = map[string]interface{}{
 	},
 }
 
+var resumeAnnotation = map[string]interface{}{
+	"metadata": map[string]interface{}{
+		"annotations": map[string]interface{}{
+			"arcane/state": nil,
+		},
+	},
+}
+
 var NAMESPACE = "arcane"
 
 type AnnotationStreamCommandHandler struct {
@@ -119,7 +127,20 @@ func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass str
 		return fmt.Errorf("status field is not a map in stream definition %s", id)
 	}
 
-	/// TODO
+	patchBytes, err := json.Marshal(resumeAnnotation)
+	if err != nil {
+		return fmt.Errorf("failed to marshal resume annotation: %w", err)
+	}
+	_, err = dynamicClient.Patch(context.TODO(),
+		id,
+		types.MergePatchType,
+		patchBytes,
+		v1.PatchOptions{})
+
+	if err != nil {
+		handler.logger.Error("Failed to resume stream", "id", id, "error", err)
+		return fmt.Errorf("failed to resume stream %s: %w", id, err)
+	}
 	return nil
 }
 
@@ -197,9 +218,10 @@ func (handler *AnnotationStreamCommandHandler) discoveryFromStreamClass(dynamicI
 	if !ok {
 		return nil, fmt.Errorf("failed to get apiPlural from stream class %s", name)
 	}
-	return &ClientApiSettings{
+	settings := &ClientApiSettings{
 		apiGroup:   apiGroup,
 		apiVersion: apiVersion,
 		apiPlural:  apiPlural,
-	}, nil
+	}
+	return settings, nil
 }
