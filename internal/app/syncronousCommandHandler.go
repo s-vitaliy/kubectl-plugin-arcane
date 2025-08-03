@@ -1,4 +1,4 @@
-package api
+package app
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 var NAMESPACE = "arcane"
 
-type AnnotationStreamCommandHandler struct {
+type SyncronousCommandHandler struct {
 	logger                *slog.Logger
 	apiSettingsDiscoverer abstractions.ApiSettingsDiscoverer
 	streamClassOperator   abstractions.StreamClassOperator
@@ -22,7 +22,7 @@ func ProvideStreamCommandHandler(logger *slog.Logger,
 	apiSettingsDiscoverer abstractions.ApiSettingsDiscoverer,
 	streamClassOperator abstractions.StreamClassOperator) (abstractions.StreamCommandHandler, error) {
 
-	handler := &AnnotationStreamCommandHandler{
+	handler := &SyncronousCommandHandler{
 		logger:                logger,
 		apiSettingsDiscoverer: apiSettingsDiscoverer,
 		streamClassOperator:   streamClassOperator,
@@ -30,7 +30,7 @@ func ProvideStreamCommandHandler(logger *slog.Logger,
 	return handler, nil
 }
 
-func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
+func (handler *SyncronousCommandHandler) Suspend(id string) error {
 	handler.logger.Info("Reading the client configuration")
 	clientApiSettings, err := handler.apiSettingsDiscoverer.DiscoveryFromJobs(context.TODO(), id, NAMESPACE)
 	if err != nil {
@@ -46,7 +46,7 @@ func (handler *AnnotationStreamCommandHandler) Suspend(id string) error {
 	return nil
 }
 
-func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass string) error {
+func (handler *SyncronousCommandHandler) Resume(id string, streamClass string) error {
 	handler.logger.Info("Resuming stream", "id", id, "streamClass", streamClass)
 	clientApiSettings, err := handler.apiSettingsDiscoverer.DiscoveryFromStreamClass(context.TODO(), streamClass, NAMESPACE)
 	if err != nil {
@@ -63,12 +63,12 @@ func (handler *AnnotationStreamCommandHandler) Resume(id string, streamClass str
 	return nil
 }
 
-func (handler *AnnotationStreamCommandHandler) Backfill(id string, watch bool) error {
+func (handler *SyncronousCommandHandler) Backfill(id string, watch bool) error {
 	// TODO: implement resume logic
 	return nil
 }
 
-func (handler *AnnotationStreamCommandHandler) Restart(id string, wait bool) error {
+func (handler *SyncronousCommandHandler) Restart(id string, wait bool) error {
 	// TODO: implement delete logic
 	return nil
 }

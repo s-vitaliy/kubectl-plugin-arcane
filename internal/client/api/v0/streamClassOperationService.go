@@ -20,6 +20,14 @@ type streamClassOperationService struct {
 
 var _ abstractions.StreamClassOperator = &streamClassOperationService{}
 
+// ProvideStreamClassOperationService provides a new StreamClassOperator implementation.
+func ProvideStreamClassOperationService(client dynamic.Interface, logger *slog.Logger) abstractions.StreamClassOperator {
+	return &streamClassOperationService{
+		client: client,
+		logger: logger,
+	}
+}
+
 // Suspend implements abstractions.StreamClassOperator.
 func (s *streamClassOperationService) Suspend(ctx context.Context, id string, namespace string, apiSettings *models.ClientApiSettings) error {
 	annotation := map[string]any{
