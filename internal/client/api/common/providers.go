@@ -15,7 +15,7 @@ func ProvideDynamicClient(configReader app.ConfigReader, logger *slog.Logger) (d
 		return nil, fmt.Errorf("failed to read config: %w", err)
 	}
 
-	logger.Info("Creating dynamic client", "config", config)
+	logger.Info("Creating dynamic client")
 	clientset, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, err
