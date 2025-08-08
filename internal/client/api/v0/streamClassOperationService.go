@@ -99,8 +99,13 @@ func (s *streamClassOperationService) WaitForStatus(ctx context.Context, targetP
 		case <-ctx.Done():
 			return fmt.Errorf("context cancelled while waiting for stream %s status", id)
 		case event, ok := <-watcher.ResultChan():
+			if !ok {
+				return fmt.Errorf("watch channel closed for stream %s", id)
+			}
+
 			s.logger.Info("Received stream status update", "id", id)
 			stream, ok := event.Object.(*unstructured.Unstructured)
+
 			if !ok {
 				return fmt.Errorf("watch channel closed for stream %s", id)
 			}
