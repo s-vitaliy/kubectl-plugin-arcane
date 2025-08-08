@@ -71,6 +71,43 @@ func (handler *SyncronousCommandHandler) Backfill(ctx context.Context, id string
 }
 
 func (handler *SyncronousCommandHandler) Restart(ctx context.Context, id string, wait bool) error {
-	// TODO: implement delete logic
+	handler.logger.Info("Restarting stream", "id", id, "wait", wait)
+	clientApiSettings, err := handler.apiSettingsDiscoverer.DiscoveryFromJobs(ctx, id, NAMESPACE)
+	if err != nil {
+		return fmt.Errorf("failed to discover job %s: %w", id, err)
+	}
+	handler.logger.Debug("Discovered client API settings", "settings", clientApiSettings)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- handler.streamClassOperator.WaitForStatus(ctx, abstractions.StreamPhaseSuspended, id, NAMESPACE, clientApiSettings)
+	}()
+
+	err = handler.streamClassOperator.Suspend(ctx, id, NAMESPACE, clientApiSettings)
+	if err != nil {
+		handler.logger.Error("Failed to suspend stream", "id", id, "error", err)
+		return fmt.Errorf("failed to suspend stream %s: %w", id, err)
+	}
+
+	waitErr := <-done
+	if waitErr != nil {
+		handler.logger.Error("Failed to wait for stream to be suspended", "id", id, "error", waitErr)
+		return fmt.Errorf("failed to wait for stream %s to be suspended: %w", id, waitErr)
+	}
+
+	err = handler.streamClassOperator.Resume(ctx, id, NAMESPACE, clientApiSettings)
+	if err != nil {
+		handler.logger.Error("Failed to resume stream", "id", id, "error", err)
+		return fmt.Errorf("failed to resume stream %s: %w", id, err)
+	}
+
+	if wait {
+		err = handler.streamClassOperator.WaitForStatus(ctx, abstractions.StreamPhaseRunning, id, NAMESPACE, clientApiSettings)
+		if err != nil {
+			handler.logger.Error("Failed to wait for stream to be running", "id", id, "error", err)
+			return fmt.Errorf("failed to wait for stream %s to be running: %w", id, err)
+		}
+	}
+
 	return nil
 }
