@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
 
@@ -39,7 +40,7 @@ type StreamCmd struct {
 func (r *SuspendCmd) Run(container *dig.Container) error {
 	err := container.Invoke(func(h abstractions.StreamCommandHandler) error {
 		if h != nil {
-			return h.Suspend(r.Id)
+			return h.Suspend(context.Background(), r.Id)
 		}
 		return fmt.Errorf("no handler provided for suspending stream")
 	})
@@ -49,9 +50,9 @@ func (r *SuspendCmd) Run(container *dig.Container) error {
 func (r *ResumeCmd) Run(container *dig.Container) error {
 	err := container.Invoke(func(h abstractions.StreamCommandHandler) error {
 		if h != nil {
-			return h.Resume(r.Id, r.Class)
+			return h.Resume(context.Background(), r.Id, r.Class)
 		}
-		return fmt.Errorf("no handler provided for suspending stream")
+		return fmt.Errorf("no handler provided for resuming stream")
 	})
 	return err
 }

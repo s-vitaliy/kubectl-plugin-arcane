@@ -67,7 +67,7 @@ func (s *streamClassOperationService) Resume(ctx context.Context, id string, nam
 	if err != nil {
 		return fmt.Errorf("failed to marshal resume annotation: %w", err)
 	}
-	_, err = dynamicClient.Patch(context.TODO(),
+	_, err = dynamicClient.Patch(ctx,
 		id,
 		types.MergePatchType,
 		patchBytes,
