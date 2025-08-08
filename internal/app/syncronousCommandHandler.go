@@ -80,6 +80,7 @@ func (handler *SyncronousCommandHandler) Restart(ctx context.Context, id string,
 
 	done := make(chan error, 1)
 	go func() {
+		defer close(done)
 		done <- handler.streamClassOperator.WaitForStatus(ctx, abstractions.StreamPhaseSuspended, id, NAMESPACE, clientApiSettings)
 	}()
 
