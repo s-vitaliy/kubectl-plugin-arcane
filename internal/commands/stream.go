@@ -42,7 +42,26 @@ func (r *ResumeCmd) Run(container *dig.Container) error {
 
 // Represents the command to backfill a stream.
 type BackfillCmd struct {
-	Id string `arg:"" help:"The ID of the stream to backfill."`
+	Id       string `arg:"" help:"The ID of the stream to backfill."`
+	Wait     bool   `help:"Wait for the stream to run a backfill."`
+	Class    string `arg:"" help:"The class of the stream to backfill." default:""`
+	Deadline string `arg:"" help:"The deadline for the backfill operation." default:"60m"`
+}
+
+func (r *BackfillCmd) Run(container *dig.Container) error {
+	err := container.Invoke(func(h abstractions.StreamCommandHandler) error {
+		if h != nil {
+			duration, err := time.ParseDuration(r.Deadline)
+			if err != nil {
+				return fmt.Errorf("failed to parse deadline %s: %w", r.Deadline, err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), duration)
+			defer cancel()
+			return h.Backfill(ctx, r.Id, r.Class, r.Wait)
+		}
+		return fmt.Errorf("no handler provided for resuming stream")
+	})
+	return err
 }
 
 // Represents the command to restart a stream.

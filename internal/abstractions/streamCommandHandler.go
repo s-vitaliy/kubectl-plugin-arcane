@@ -20,7 +20,7 @@ type StreamBackfillHandler interface {
 
 	/// Backfill restarts the stream with the given ID in backfill mode.
 	/// It returns an error if the operation fails.
-	Backfill(ctx context.Context, id string, watch bool) error
+	Backfill(ctx context.Context, id string, streamClass string, watch bool) error
 }
 
 type StreamRestartHandler interface {

@@ -83,7 +83,7 @@ func (s *streamClassDiscoveryService) DiscoveryFromStreamClass(ctx context.Conte
 		return nil, fmt.Errorf("failed to get apiVersion from stream class %s", streamClass)
 	}
 
-	apiPlural, ok := spec["pluralstreamClass"].(string)
+	apiPlural, ok := spec["pluralName"].(string)
 	if !ok {
 		return nil, fmt.Errorf("failed to get apiPlural from stream class %s", streamClass)
 	}
