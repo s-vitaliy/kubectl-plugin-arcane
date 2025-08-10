@@ -17,7 +17,7 @@ const (
 var stateName = map[StreamPhase]string{
 	StreamPhaseRunning:   "Running",
 	StreamPhaseSuspended: "Suspended",
-	StreamPhaseBackfill:  "Backfill",
+	StreamPhaseBackfill:  "Reloading",
 	StreamPhaseFailed:    "Failed",
 }
 
@@ -34,4 +34,7 @@ type StreamClassOperator interface {
 
 	// WaitForStatus waits for the stream to reach the desired status.
 	WaitForStatus(ctx context.Context, status StreamPhase, id string, namespace string, apiSettings *models.ClientApiSettings) error
+
+	// Backfill restarts the stream in backfill mode.
+	Backfill(ctx context.Context, id string, namespace string, clientApiSettings *models.ClientApiSettings) error
 }

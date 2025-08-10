@@ -39,19 +39,7 @@ func (s *streamClassOperationService) Suspend(ctx context.Context, id string, na
 			},
 		},
 	}
-	patchBytes, err := json.Marshal(annotation)
-	if err != nil {
-		return fmt.Errorf("failed to marshal suspend annotation: %w", err)
-	}
-	dynamicClient := s.client.Resource(apiSettings.ToGroupVersionResource()).Namespace(namespace)
-
-	_, err = dynamicClient.Patch(ctx, id, types.MergePatchType, patchBytes, v1.PatchOptions{})
-
-	if err != nil {
-		s.logger.Error("Failed to suspend stream", "id", id, "error", err)
-		return fmt.Errorf("failed to suspend stream %s: %w", id, err)
-	}
-	return nil
+	return s.patchObject(ctx, id, namespace, apiSettings, annotation)
 }
 
 // Resume implements abstractions.StreamClassOperator.
@@ -63,25 +51,23 @@ func (s *streamClassOperationService) Resume(ctx context.Context, id string, nam
 			},
 		},
 	}
-	dynamicClient := s.client.Resource(apiSettings.ToGroupVersionResource()).Namespace(namespace)
-
-	patchBytes, err := json.Marshal(annotation)
-	if err != nil {
-		return fmt.Errorf("failed to marshal resume annotation: %w", err)
-	}
-	_, err = dynamicClient.Patch(ctx,
-		id,
-		types.MergePatchType,
-		patchBytes,
-		v1.PatchOptions{})
-	if err != nil {
-		s.logger.Error("Failed to resume stream", "id", id, "error", err)
-		return fmt.Errorf("failed to resume stream %s: %w", id, err)
-	}
-	s.logger.Info("Stream resumed successfully", "id", id)
-	return nil
+	return s.patchObject(ctx, id, namespace, apiSettings, annotation)
 }
 
+// Backfill implements abstractions.StreamClassOperator.
+func (s *streamClassOperationService) Backfill(ctx context.Context, id string, namespace string, apiSettings *models.ClientApiSettings) error {
+	s.logger.Info("Restarting the stream in backfill mode", "id", id)
+	annotation := map[string]any{
+		"metadata": map[string]any{
+			"annotations": map[string]string{
+				"arcane/state": "reload-requested",
+			},
+		},
+	}
+	return s.patchObject(ctx, id, namespace, apiSettings, annotation)
+}
+
+// WaitForStatus implements abstractions.StreamClassOperator.
 func (s *streamClassOperationService) WaitForStatus(ctx context.Context, targetPhase abstractions.StreamPhase, id string, namespace string, apiSettings *models.ClientApiSettings) error {
 	dynamicClient := s.client.Resource(apiSettings.ToGroupVersionResource()).Namespace(namespace)
 	watcher, err := dynamicClient.Watch(ctx, v1.ListOptions{
@@ -129,4 +115,28 @@ func (s *streamClassOperationService) WaitForStatus(ctx context.Context, targetP
 			}
 		}
 	}
+}
+
+func (s *streamClassOperationService) patchObject(ctx context.Context, id string, namespace string, apiSettings *models.ClientApiSettings, annotation map[string]any) error {
+	s.logger.Debug("Patching stream object", "id", id, "namespace", namespace, "apiSettings", apiSettings)
+	if len(annotation) == 0 {
+		return fmt.Errorf("no annotations provided for patching stream %s", id)
+	}
+
+	dynamicClient := s.client.Resource(apiSettings.ToGroupVersionResource()).Namespace(namespace)
+	patchBytes, err := json.Marshal(annotation)
+	if err != nil {
+		return fmt.Errorf("failed to marshal annotation: %w", err)
+	}
+	_, err = dynamicClient.Patch(ctx,
+		id,
+		types.MergePatchType,
+		patchBytes,
+		v1.PatchOptions{})
+	if err != nil {
+		s.logger.Error("Failed to patch stream", "id", id, "error", err)
+		return fmt.Errorf("failed to patch stream %s: %w", id, err)
+	}
+	s.logger.Info("Stream patched successfully", "id", id)
+	return nil
 }
