@@ -111,7 +111,11 @@ func (handler *SyncronousCommandHandler) Backfill(ctx context.Context, id string
 
 	if watch {
 		handler.logger.Info("Waiting for stream to complete backfill", "id", id)
-		handler.streamClassOperator.WaitForStatus(ctx, abstractions.StreamPhaseRunning, id, NAMESPACE, clientApiSettings)
+		err = handler.streamClassOperator.WaitForStatus(ctx, abstractions.StreamPhaseRunning, id, NAMESPACE, clientApiSettings)
+		if err != nil {
+			handler.logger.Error("Failed to wait for stream to be running", "id", id, "error", err)
+			return fmt.Errorf("failed to wait for stream %s to be running: %w", id, err)
+		}
 	}
 	return nil
 }
