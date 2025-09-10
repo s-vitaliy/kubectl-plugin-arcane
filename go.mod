@@ -4,8 +4,8 @@ go 1.24.5
 
 require (
 	github.com/alecthomas/kong v1.12.1
-	k8s.io/apimachinery v0.34.0
-	k8s.io/client-go v0.34.0
+	k8s.io/apimachinery v0.34.1
+	k8s.io/client-go v0.34.1
 )
 
 require sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
