@@ -42,11 +42,10 @@ jobs:
         with:
           version: v2.1.0
           
-      # - name: Test
-      #   id: coverage
-      #   env:
-      #     APPLICATION_ENVIRONMENT: units
-      #   run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+      - name: Test
+        env:
+          APPLICATION_ENVIRONMENT: units
+        run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
 
       - name: check test coverage
         id: coverage
