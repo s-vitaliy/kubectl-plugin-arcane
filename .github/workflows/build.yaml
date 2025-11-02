@@ -93,7 +93,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-tag: coverage-report
-          pr-number: ${{ github.event.pull_request.id }}
+          # pr-number: ${{ github.event.pull_request.id }}
           message: |
             go-test-coverage report:
             ```
