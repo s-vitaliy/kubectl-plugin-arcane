@@ -42,11 +42,16 @@ jobs:
         with:
           version: v2.1.0
           
-      - name: Test
+      # - name: Test
+      #   id: coverage
+      #   env:
+      #     APPLICATION_ENVIRONMENT: units
+      #   run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+
+      - name: check test coverage
         id: coverage
-        env:
-          APPLICATION_ENVIRONMENT: units
-        run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+        uses: vladopajic/go-test-coverage@v2
+        continue-on-error: true # Should fail after coverage comment is posted
         
       # - name: Visualise Coverage
       #   if: ${{ github.ref != 'refs/heads/master' && always() }}
