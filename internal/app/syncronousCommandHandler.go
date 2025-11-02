@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"s-vitaliy/kubectl-plugin-arcane/internal/app/abstractions"
 	"strings"
-
-	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
 )
 
 var NAMESPACE = "arcane"

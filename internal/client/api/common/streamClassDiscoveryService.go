@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
+	"s-vitaliy/kubectl-plugin-arcane/internal/app/abstractions"
 	"s-vitaliy/kubectl-plugin-arcane/internal/models"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
