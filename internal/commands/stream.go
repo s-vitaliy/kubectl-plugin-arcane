@@ -3,7 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
-	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
+	"s-vitaliy/kubectl-plugin-arcane/internal/app/abstractions"
 	"time"
 
 	"go.uber.org/dig"

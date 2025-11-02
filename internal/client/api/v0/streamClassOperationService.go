@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"s-vitaliy/kubectl-plugin-arcane/internal/abstractions"
+	"s-vitaliy/kubectl-plugin-arcane/internal/app/abstractions"
 	"s-vitaliy/kubectl-plugin-arcane/internal/models"
 	"strings"
 
