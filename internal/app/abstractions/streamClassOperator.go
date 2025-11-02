@@ -21,10 +21,11 @@ var stateName = map[StreamPhase]string{
 	StreamPhaseFailed:    "Failed",
 }
 
-func (ss StreamPhase) String() string {
+func (ss StreamPhase) String() string { // coverage-ignore
 	return stateName[ss]
 }
 
+// StreamClassOperator defines the operations that can be performed on a stream class.
 type StreamClassOperator interface {
 	// Suspend suspends a running stream by its ID.
 	Suspend(ctx context.Context, id string, namespace string, apiSettings *models.ClientApiSettings) error

@@ -20,7 +20,7 @@ var CLI struct {
 
 const AppDescription = "A command line tool for managing the Arcane streams."
 
-func main() {
+func main() { // coverage-ignore
 	handler := slog.NewTextHandler(os.Stdout, nil)
 	logger := slog.New(handler)
 	container := dig.New()

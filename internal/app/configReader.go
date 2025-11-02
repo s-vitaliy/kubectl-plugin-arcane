@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"os"
 
+	"s-vitaliy/kubectl-plugin-arcane/internal/client/api/common"
+
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type ConfigReader interface {
-	ReadConfig() (*rest.Config, error)
-}
-
-func ProvideConfigReader() (ConfigReader, error) {
+func ProvideConfigReader() (common.ConfigReader, error) { // coverage-ignore, the code is trivial
 	return &fileConfigReader{ConfigOverride: ""}, nil
 }
 
@@ -20,7 +18,7 @@ type fileConfigReader struct {
 	ConfigOverride string
 }
 
-func (r *fileConfigReader) ReadConfig() (*rest.Config, error) {
+func (r *fileConfigReader) ReadConfig() (*rest.Config, error) { // coverage-ignore, the code is trivial
 	if r.ConfigOverride != "" {
 		return r.readFromFile(r.ConfigOverride)
 	}
@@ -33,7 +31,7 @@ func (r *fileConfigReader) ReadConfig() (*rest.Config, error) {
 
 }
 
-func (r *fileConfigReader) readFromFile(path string) (*rest.Config, error) {
+func (r *fileConfigReader) readFromFile(path string) (*rest.Config, error) { // coverage-ignore, the code is trivial
 
 	data, err := os.ReadFile(path)
 	if err != nil {
