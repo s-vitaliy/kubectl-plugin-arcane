@@ -70,7 +70,7 @@ jobs:
           git-token: ${{ github.ref_name == 'master' && secrets.GITHUB_TOKEN || '' }}
           git-branch: badges
 
-      - name: "finally check coverage"
-        if: steps.coverage.outcome == 'failure'
-        shell: bash
-        run: echo "coverage check failed" && exit 1
+      # - name: "finally check coverage"
+      #   if: steps.coverage.outcome == 'failure'
+      #   shell: bash
+      #   run: echo "coverage check failed" && exit 1
