@@ -47,26 +47,51 @@ jobs:
           APPLICATION_ENVIRONMENT: units
         run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
         
-      - name: Visualise Coverage
-        if: ${{ github.ref != 'refs/heads/master' && always() }}
-        run: go tool cover -html=cover.out -o=cover.html
+      # - name: Visualise Coverage
+      #   if: ${{ github.ref != 'refs/heads/master' && always() }}
+      #   run: go tool cover -html=cover.out -o=cover.html
         
-      - name: Upload Coverage
-        if: ${{ github.ref != 'refs/heads/master' && always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: cover.html
-          retention-days: 1
-        id: cover
+      # - name: Upload Coverage
+      #   if: ${{ github.ref != 'refs/heads/master' && always() }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage
+      #     path: cover.html
+      #     retention-days: 1
+      #   id: cover
           
-      - name: Post Coverage
-        if: ${{ github.ref != 'refs/heads/master' && always() }}
-        uses: peter-evans/create-or-update-comment@v4
+      # - name: Post Coverage
+      #   if: ${{ github.ref != 'refs/heads/master' && always() }}
+      #   uses: peter-evans/create-or-update-comment@v4
+      #   with:
+      #     issue-number: ${{ github.event.number }}
+      #     body: |
+      #       New [coverage report](${{ steps.cover.outputs.artifact-url }}) available :sparkles:
+
+      # Post coverage report as comment (in 2 steps)
+      - name: find pull request ID
+        run: |
+            PR_DATA=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls?head=${{ github.repository_owner }}:${{ github.ref_name }}&state=open")
+            PR_ID=$(echo "$PR_DATA" | jq -r '.[0].number')
+            
+            if [ "$PR_ID" != "null" ]; then
+              echo "pull_request_id=$PR_ID" >> $GITHUB_ENV
+            else
+              echo "No open pull request found for this branch."
+            fi
+
+      - name: post coverage report
+        if: env.pull_request_id
+        uses: thollander/actions-comment-pull-request@v3
         with:
-          issue-number: ${{ github.event.number }}
-          body: |
-            New [coverage report](${{ steps.cover.outputs.artifact-url }}) available :sparkles:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-tag: coverage-report
+          pr-number: ${{ env.pull_request_id }}
+          message: |
+            go-test-coverage report:
+            ```
+            ${{ fromJSON(steps.coverage.outputs.report) }}```
 
       - name: Check Coverage
         uses: vladopajic/go-test-coverage@v2
