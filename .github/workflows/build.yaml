@@ -43,6 +43,7 @@ jobs:
           version: v2.1.0
           
       - name: Test
+        id: coverage
         env:
           APPLICATION_ENVIRONMENT: units
         run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
@@ -82,12 +83,11 @@ jobs:
             fi
 
       - name: post coverage report
-        if: env.pull_request_id
         uses: thollander/actions-comment-pull-request@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-tag: coverage-report
-          pr-number: ${{ env.pull_request_id }}
+          pr-number: ${{ github.event.pull_request.id }}
           message: |
             go-test-coverage report:
             ```
