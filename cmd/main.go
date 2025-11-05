@@ -75,7 +75,7 @@ func main() { // coverage-ignore
 	logger.Info("Command executed successfully", slog.String("command", command.Command()))
 }
 
-func getExecutableName() string {
+func getExecutableName() string { // coverage-ignore
 	// Not checking for errors here since argv[0] should always be available
 	return os.Args[0]
 }
