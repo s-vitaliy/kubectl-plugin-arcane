@@ -26,7 +26,7 @@ func (r *execConfigReader) ReadConfig() (*rest.Config, error) {
 	cmd := exec.Command(*r.command, r.arguments...)
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute command %s: %w", r.command, err)
+		return nil, fmt.Errorf("failed to execute command %s: %w", *r.command, err)
 	}
 
 	// Parse the output as kubeconfig
