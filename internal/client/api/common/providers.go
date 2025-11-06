@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"log/slog"
 
-	"s-vitaliy/kubectl-plugin-arcane/internal/app"
-
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 )
 
-func ProvideDynamicClient(configReader app.ConfigReader, logger *slog.Logger) (dynamic.Interface, error) {
+type ConfigReader interface {
+	ReadConfig() (*rest.Config, error)
+}
+
+func ProvideDynamicClient(configReader ConfigReader, logger *slog.Logger) (dynamic.Interface, error) {
 	config, err := configReader.ReadConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)
