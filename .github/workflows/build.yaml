@@ -52,7 +52,7 @@ jobs:
 
       - name: check test coverage
         id: coverage
-        uses: vladopajic/go-test-coverage@v2
+        uses: s-vitaliy/go-test-coverage@experimental
         continue-on-error: true # Should fail after coverage comment is posted
         with:
           config: ./.github/.testcoverage.yaml
@@ -69,7 +69,7 @@ jobs:
 
       - name: Check Coverage
         # if: matrix.os == 'ubuntu-latest'  # Only run coverage check on x86
-        uses: vladopajic/go-test-coverage@v2
+        uses: s-vitaliy/go-test-coverage@experimental
         with:
           config: ./.testcoverage.yml
           git-token: ${{ github.ref_name == 'master' && secrets.GITHUB_TOKEN || '' }}
