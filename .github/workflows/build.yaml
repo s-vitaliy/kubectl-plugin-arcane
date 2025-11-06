@@ -12,7 +12,10 @@ permissions: write-all  # required for badges
 jobs:
   build:
     name: Validate code
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm64]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +58,7 @@ jobs:
           config: ./.github/.testcoverage.yaml
         
       - name: post coverage report
+        # if: matrix.os == 'ubuntu-latest'  # Only run coverage report on x86
         uses: thollander/actions-comment-pull-request@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -64,6 +68,7 @@ jobs:
             ```${{ fromJSON(steps.coverage.outputs.report) }}```
 
       - name: Check Coverage
+        # if: matrix.os == 'ubuntu-latest'  # Only run coverage check on x86
         uses: vladopajic/go-test-coverage@v2
         with:
           config: ./.testcoverage.yml
