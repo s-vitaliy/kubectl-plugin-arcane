@@ -12,8 +12,8 @@ import (
 
 var _ common.ConfigReader = (*execConfigReader)(nil)
 
-func NewExecConfigReader(execPath *string, arguments []string) (common.ConfigReader, error) { // coverage-ignore, constructor
-	return &execConfigReader{command: execPath, arguments: arguments}, nil
+func NewExecConfigReader(command *string, arguments []string) (common.ConfigReader, error) { // coverage-ignore, the code is trivial
+	return &execConfigReader{command, arguments}, nil
 }
 
 type execConfigReader struct {

@@ -13,17 +13,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/dig"
-	"k8s.io/client-go/rest"
 )
 
-var streamConfig *rest.Config
+var streamConfig *common.ConfigReader
 
-func TestSum(t *testing.T) {
+func TestDiscoveryFromStreamClass(t *testing.T) {
 	container := dig.New()
 	err := container.Provide(common.ProvideDynamicClient)
 	assert.NoError(t, err)
 
 	err = container.Provide(common.ProvideStreamClassDiscoveryService)
+	assert.NoError(t, err)
+
+	err = container.Provide(func() common.ConfigReader {
+		return *streamConfig
+	})
 	assert.NoError(t, err)
 
 	err = container.Provide(func() *slog.Logger {
