@@ -52,13 +52,13 @@ jobs:
 
       - name: check test coverage
         id: coverage
-        uses: s-vitaliy/go-test-coverage@experimental
-        continue-on-error: true # Should fail after coverage comment is posted
+        uses: vladopajic/go-test-coverage@v2.18.0
+        # Should fail after coverage comment is posted
+        continue-on-error: true
         with:
           config: ./.github/.testcoverage.yaml
         
       - name: post coverage report
-        # if: matrix.os == 'ubuntu-latest'  # Only run coverage report on x86
         uses: thollander/actions-comment-pull-request@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -68,14 +68,13 @@ jobs:
             ```${{ fromJSON(steps.coverage.outputs.report) }}```
 
       - name: Check Coverage
-        # if: matrix.os == 'ubuntu-latest'  # Only run coverage check on x86
-        uses: s-vitaliy/go-test-coverage@experimental
+        uses: vladopajic/go-test-coverage@v2.18.0
         with:
           config: ./.testcoverage.yml
           git-token: ${{ github.ref_name == 'master' && secrets.GITHUB_TOKEN || '' }}
           git-branch: badges
 
-      # - name: "finally check coverage"
-      #   if: steps.coverage.outcome == 'failure'
-      #   shell: bash
-      #   run: echo "coverage check failed" && exit 1
+      - name: "finally check coverage"
+        if: steps.coverage.outcome == 'failure'
+        shell: bash
+        run: echo "coverage check failed" && exit 1
