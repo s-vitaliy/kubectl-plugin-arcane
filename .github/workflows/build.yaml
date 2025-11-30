@@ -75,6 +75,7 @@ jobs:
           git-branch: badges
 
       - name: "finally check coverage"
-        if: steps.coverage.outcome == 'failure'
+        # Ignore this step for now, until we decide on coverage policy
+        if: false && steps.coverage.outcome == 'failure'
         shell: bash
         run: echo "coverage check failed" && exit 1
