@@ -20,7 +20,7 @@ var CLI struct {
 
 const AppDescription = "A command line tool for managing the Arcane streams."
 
-func main() {
+func main() { // coverage-ignore
 	handler := slog.NewTextHandler(os.Stdout, nil)
 	logger := slog.New(handler)
 	container := dig.New()
@@ -75,7 +75,7 @@ func main() {
 	logger.Info("Command executed successfully", slog.String("command", command.Command()))
 }
 
-func getExecutableName() string {
+func getExecutableName() string { // coverage-ignore
 	// Not checking for errors here since argv[0] should always be available
 	return os.Args[0]
 }
