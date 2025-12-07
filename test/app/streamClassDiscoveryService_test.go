@@ -24,8 +24,6 @@ func TestDiscoveryFromStreamClass(t *testing.T) {
 	err = container.Provide(common.ProvideStreamClassDiscoveryService)
 	assert.NoError(t, err)
 
-	assert.NoError(t, err)
-
 	err = container.Provide(func() *slog.Logger {
 		handler := slog.NewTextHandler(io.Discard, nil)
 		return slog.New(handler)
@@ -35,13 +33,15 @@ func TestDiscoveryFromStreamClass(t *testing.T) {
 	err = container.Invoke(func(service abstractions.ApiSettingsDiscoverer) {
 		assert.NotNil(t, service)
 		api, err := service.DiscoveryFromStreamClass(t.Context(), "arcane-stream-microsoft-sql-server", "arcane")
+
 		assert.NoError(t, err)
 		assert.NotNil(t, api)
+		assert.Equal(t, "streaming.sneaksanddata.com", api.ToGroupVersionResource().Group)
+		assert.Equal(t, "v1beta1", api.ToGroupVersionResource().GroupVersion().Version)
+		assert.Equal(t, "microsoft-sql-server-streams", api.ToGroupVersionResource().Resource)
 	})
-
 	assert.NoError(t, err)
 
-	assert.True(t, true)
 }
 
 var cmd = flag.String("cmd", "/opt/homebrew/bin/kind get kubeconfig", "Command to get kubeconfig")
