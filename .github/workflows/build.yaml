@@ -45,10 +45,17 @@ jobs:
         with:
           version: v2.1.0
           
+      - uses: extractions/setup-just@v3
+        with:
+          version: 1.40.0
+
+      - name: Start the kind cluster
+        run: just up
+
       - name: Test
         env:
           APPLICATION_ENVIRONMENT: units
-        run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+        run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./... -cmd "kind get kubeconfig"
 
       - name: check test coverage
         id: coverage

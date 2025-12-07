@@ -1,9 +1,9 @@
 default:
     @just --list
 
-fresh: stop start
+fresh: stop up
 
-start: create-cluster install-operator install-rbac install-job install-stream create-secret create-mock-stream
+up: create-cluster install-operator install-rbac install-job install-stream create-secret create-mock-stream
 
 stop:
     kind delete cluster
