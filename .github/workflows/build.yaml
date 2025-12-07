@@ -45,10 +45,17 @@ jobs:
         with:
           version: v2.1.0
           
+      - uses: extractions/setup-just@v3
+        with:
+          version: 1.40.0
+
+      - name: Start the kind cluster
+        run: just up
+
       - name: Test
         env:
           APPLICATION_ENVIRONMENT: units
-        run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+        run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./... -cmd "kind get kubeconfig"
 
       - name: check test coverage
         id: coverage
@@ -59,6 +66,7 @@ jobs:
           config: ./.github/.testcoverage.yaml
         
       - name: post coverage report
+        if: ${{ github.ref_name != 'master' }}
         uses: thollander/actions-comment-pull-request@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -67,7 +75,8 @@ jobs:
             go-test-coverage report:
             ```${{ fromJSON(steps.coverage.outputs.report) }}```
 
-      - name: Check Coverage
+      - name: Post coverage badges
+        if: ${{ github.ref_name == 'master' && matrix.os == 'ubuntu-24.04-arm' }}
         uses: vladopajic/go-test-coverage@v2.18.0
         with:
           config: ./.testcoverage.yml
