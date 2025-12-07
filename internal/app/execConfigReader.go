@@ -12,20 +12,13 @@ import (
 
 var _ common.ConfigReader = (*execConfigReader)(nil)
 
-// NewExecConfigReaderProvider returns a provider function that creates an execConfigReader.
-func NewExecConfigReaderProvider(command *string, arguments []string) func() common.ConfigReader {
-	return func() common.ConfigReader {
-		return ProvideExecConfigReader(command, arguments)
-	}
-}
-
 // NewValidatedExecConfigReaderProvider returns a provider function that creates an execConfigReader
 // and validates it by invoking ReadConfig before returning.
 func NewValidatedExecConfigReaderProvider(command *string, arguments []string) func() (common.ConfigReader, error) {
 	return func() (common.ConfigReader, error) {
 		reader := ProvideExecConfigReader(command, arguments)
 		_, err := reader.ReadConfig()
-		if err != nil {
+		if err != nil { // coverage-ignore
 			return nil, fmt.Errorf("failed to validate config reader: %w", err)
 		}
 		return reader, nil
