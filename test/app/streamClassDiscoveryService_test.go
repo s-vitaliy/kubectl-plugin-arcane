@@ -15,25 +15,14 @@ import (
 	"go.uber.org/dig"
 )
 
-var configReader common.ConfigReader
+var container *dig.Container
 
 func TestDiscoveryFromStreamClass(t *testing.T) {
-	container := dig.New()
-
 	err := container.Provide(common.ProvideDynamicClient)
 	assert.NoError(t, err)
 
 	err = container.Provide(common.ProvideStreamClassDiscoveryService)
 	assert.NoError(t, err)
-
-	err = container.Provide(func() common.ConfigReader {
-		return configReader
-	})
-
-	_, err = configReader.ReadConfig()
-	if err != nil {
-		panic(err)
-	}
 
 	assert.NoError(t, err)
 
@@ -61,16 +50,8 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	command := strings.Split(*cmd, " ")
 
-	var err error
-	configReader, err = app.NewExecConfigReader(&command[0], command[1:])
-	if err != nil {
-		panic(err)
-	}
-
-	// _, err = configReader.ReadConfig()
-	// if err != nil {
-	// 	panic(err)
-	// }
+	container = dig.New()
+	container.Provide(app.NewValidatedExecConfigReaderProvider(&command[0], command[1:]))
 
 	code := m.Run()
 	os.Exit(code)
