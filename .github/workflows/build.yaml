@@ -66,7 +66,7 @@ jobs:
           config: ./.github/.testcoverage.yaml
         
       - name: post coverage report
-        if: ${{ github.ref_name != 'main' }}
+        if: ${{ github.ref_name != 'master' }}
         uses: thollander/actions-comment-pull-request@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -75,7 +75,8 @@ jobs:
             go-test-coverage report:
             ```${{ fromJSON(steps.coverage.outputs.report) }}```
 
-      - name: Check Coverage
+      - name: Post coverage badges
+        if: ${{ github.ref_name == 'master' && matrix.os == 'ubuntu-24.04-arm' }}
         uses: vladopajic/go-test-coverage@v2.18.0
         with:
           config: ./.testcoverage.yml
