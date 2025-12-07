@@ -29,6 +29,12 @@ func TestDiscoveryFromStreamClass(t *testing.T) {
 	err = container.Provide(func() common.ConfigReader {
 		return configReader
 	})
+
+	_, err = configReader.ReadConfig()
+	if err != nil {
+		panic(err)
+	}
+
 	assert.NoError(t, err)
 
 	err = container.Provide(func() *slog.Logger {
@@ -61,10 +67,10 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	_, err = configReader.ReadConfig()
-	if err != nil {
-		panic(err)
-	}
+	// _, err = configReader.ReadConfig()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	code := m.Run()
 	os.Exit(code)
